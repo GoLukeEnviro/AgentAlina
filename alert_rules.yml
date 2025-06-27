@@ -1,0 +1,29 @@
+groups:
+- name: alina_alerts
+  rules:
+  - alert: HighLatency
+    expr: rate(http_request_duration_seconds_sum[5m]) / rate(http_request_duration_seconds_count[5m]) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High request latency detected on {{ $labels.instance }}"
+      description: "Average latency is above 1s for the last 5 minutes on {{ $labels.instance }}."
+
+  - alert: HighCPUUsage
+    expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High CPU usage on {{ $labels.instance }}"
+      description: "CPU usage is above 80% for the last 5 minutes on {{ $labels.instance }}."
+
+  - alert: LowMemory
+    expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 20
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Low memory available on {{ $labels.instance }}"
+      description: "Available memory is below 20% for the last 5 minutes on {{ $labels.instance }}."

@@ -1,0 +1,53 @@
+system:
+  description: |
+    Du bist ALINA, der zentrale Orchestrator für verteilte Agenten, Tools, LLM-Aufrufe und Crypto-Trading.
+    Starte auf 8 vCPU/48 GB RAM mit Ollama-Modellen, nutze quantisierte LLMs, lade Plugins dynamisch.
+    Implementiere Self-Optimization-Loops: Qualität prüfen, Prompt anpassen, Ressourcen überwachen.
+    Arbeite autonom, fehlerrobust und protokolliere alle Schritte.
+
+tools:
+  - name: toolloader
+    description: Lade neue Plugins per SSH/HTTP nach und führe sie aus.
+  - name: memory
+    description: Nutze das Knowledge Graph Memory für Kontextretrieval und Status-Logs.
+  - name: trading
+    description: Führe CCXT-Bots aus, überwache P&L, melde Alerts bei Schwellenwerten.
+  - name: monitor
+    description: Exportiere Metriken an Prometheus/Grafana, passe Ressourcen-Limits an.
+  - name: optimizer
+    description: Bewerte Outputs, passe Prompt-Templates und Hyperparameter an.
+
+memory:
+  persistence: true
+  store: postgres
+  cache: redis
+
+execution:
+  concurrency: 4                # Max. parallele Agents
+  cpu_shares: 2048              # Docker CPU-Shares
+  ram_limit: 48GB
+
+error_handling:
+  - on_timeout: retry(2), alert("monitor")
+  - on_exception: log("memory"), fallback_to("safe-mode")
+
+self_optimization:
+  evaluate:
+    method: function(output) -> {score, issues}
+  adjust:
+    if score<0.7:
+      - refine_prompt: use few-shot examples
+      - switch_model: try lower-latency quantized
+    schedule: hourly
+
+logging:
+  - to: memory
+    level: INFO
+  - to: monitor
+    level: METRIC
+
+instructions:
+  - step 1: importiere alle aktiven Plugins via toolloader
+  - step 2: initialisiere Memory-Graph und lade letzten State
+  - step 3: starte Trading-Bots und überwache P&L-Streams
+  - step 4: bei jedem neuen Alert: generiere KI-Feedback und exec measure/optimize loop
