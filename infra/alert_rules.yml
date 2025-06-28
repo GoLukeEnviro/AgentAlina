@@ -1,0 +1,47 @@
+groups:
+- name: alina_alerts
+  rules:
+  - alert: HighLatency
+    expr: avg_over_time(request_latency_seconds[5m]) > 2
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Hohe Latenz in {{ $labels.service }}"
+      description: "Die durchschnittliche Latenz von {{ $labels.service }} ist über 2 Sekunden in den letzten 5 Minuten."
+
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status="500"}[5m]) / rate(http_requests_total[5m]) > 0.05
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Hohe Fehlerrate in {{ $labels.service }}"
+      description: "Mehr als 5% der Anfragen an {{ $labels.service }} schlagen fehl (Status 500)."
+
+  - alert: LowThroughput
+    expr: rate(processed_requests_total[5m]) < 10
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Niedriger Durchsatz in {{ $labels.service }}"
+      description: "Der Durchsatz von {{ $labels.service }} ist unter 10 Anfragen pro Sekunde in den letzten 10 Minuten."
+
+  - alert: HighMemoryUsage
+    expr: container_memory_usage_bytes{service=~"toolloader|memory|trading|monitor|optimizer"} / container_memory_limit_bytes{service=~"toolloader|memory|trading|monitor|optimizer"} > 0.8
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Hohe Speicherauslastung in {{ $labels.service }}"
+      description: "{{ $labels.service }} nutzt über 80% des zugewiesenen Speichers."
+
+  - alert: HighCPUUsage
+    expr: container_cpu_usage_seconds_total{service=~"toolloader|memory|trading|monitor|optimizer"} / container_cpu_limit_seconds_total{service=~"toolloader|memory|trading|monitor|optimizer"} > 0.8
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Hohe CPU-Auslastung in {{ $labels.service }}"
+      description: "{{ $labels.service }} nutzt über 80% der zugewiesenen CPU-Ressourcen."

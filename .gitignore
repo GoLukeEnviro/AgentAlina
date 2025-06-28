@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environments
+.env
+.venv/
+venv/
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Sonstiges
+*.sqlite3
+*.db
+
+# Docker
+*.pid
+docker-compose.override.yml
+
+# Test/Build
+coverage/
+dist/
+build/
+
+# Sonstige sensible Dateien
+memory.jsonl

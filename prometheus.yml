@@ -1,0 +1,31 @@
+# Prometheus configuration file for AgentAlina
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  - job_name: 'agentalina_app'
+    static_configs:
+      - targets: ['app:8000']
+        labels:
+          group: 'production'
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node'
+    static_configs:
+      - targets: ['app:9100']
+        labels:
+          group: 'system-metrics'

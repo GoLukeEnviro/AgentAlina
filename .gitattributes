@@ -1,0 +1,9 @@
+# Standard .gitattributes für AgentElli
+* text=auto
+*.py linguist-language=Python
+*.sh linguist-language=Shell
+*.md linguist-language=Markdown
+*.yml linguist-language=YAML
+*.yaml linguist-language=YAML
+*.json linguist-language=JSON
+*.env linguist-language=INI

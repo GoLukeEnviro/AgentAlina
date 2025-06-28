@@ -1,0 +1,203 @@
+version: '3.8'
+
+services:
+  ollama-server:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2.0'
+    #       memory: 8GB
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=alina
+      - POSTGRES_PASSWORD=securepassword
+      - POSTGRES_DB=knowledge_graph
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: 2GB
+
+  redis:
+    image: redis:7
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 1GB
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - /root/AgentAlina/infra/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /root/AgentAlina/infra/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 1GB
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 1GB
+
+  toolloader:
+    build: /root/AgentAlina/services/toolloader
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - internal
+      - mcp-net
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: 4GB
+
+  memory:
+    build: /root/AgentAlina/services/memory
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - internal
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: 4GB
+
+  trading:
+    build: /root/AgentAlina/services/trading
+    depends_on:
+      - memory
+    networks:
+      - internal
+      - mcp-net
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: 4GB
+
+  monitor:
+    build: /root/AgentAlina/services/monitor
+    depends_on:
+      - prometheus
+    networks:
+      - internal
+      - monitor-net
+      - mcp-net
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 2GB
+
+  optimizer:
+    build: /root/AgentAlina/services/optimizer
+    depends_on:
+      - memory
+      - monitor
+    networks:
+      - internal
+      - mcp-net
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: 4GB
+
+  model-mcp:
+    build: /root/AgentAlina/services/model-mcp
+    ports:
+      - "8001:8001"
+    networks:
+      - mcp-net
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 2GB
+
+  monitor-mcp:
+    build: /root/AgentAlina/services/monitor-mcp
+    ports:
+      - "8002:8002"
+    networks:
+      - mcp-net
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 2GB
+
+  optimizer-mcp:
+    build: /root/AgentAlina/services/optimizer-mcp
+    ports:
+      - "8003:8003"
+    networks:
+      - mcp-net
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 2GB
+
+  plugin-mcp:
+    build: /root/AgentAlina/services/plugin-mcp
+    ports:
+      - "8004:8004"
+    networks:
+      - mcp-net
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 2GB
+
+networks:
+  internal:
+    driver: bridge
+  monitor-net:
+    driver: bridge
+  mcp-net:
+    driver: bridge
+
+volumes:
+  ollama_data:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:

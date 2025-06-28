@@ -1,0 +1,143 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+    image: agentalina:latest
+    container_name: agentalina_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - ENVIRONMENT=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=agentalina
+      - POSTGRES_USER=agentalina_user
+      - POSTGRES_PASSWORD=agentalina_password
+    volumes:
+      - app_data:/app/data
+    depends_on:
+      - redis
+      - postgres
+    healthcheck:
+      test: ["CMD", "/app/docker/production/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - agentalina_network
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: agentalina_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - agentalina_network
+
+  postgres:
+    image: postgres:13-alpine
+    container_name: agentalina_postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=agentalina
+      - POSTGRES_USER=agentalina_user
+      - POSTGRES_PASSWORD=agentalina_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/production/postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentalina_user -d agentalina"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - agentalina_network
+
+  prometheus:
+    image: prom/prometheus:v2.30.3
+    container_name: agentalina_prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - agentalina_network
+
+  grafana:
+    image: grafana/grafana:8.2.2
+    container_name: agentalina_grafana
+    restart: unless-stopped
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - agentalina_network
+
+  nginx:
+    image: nginx:1.21-alpine
+    container_name: agentalina_nginx
+    restart: unless-stopped
+    volumes:
+      - ./docker/production/nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - agentalina_network
+
+volumes:
+  app_data:
+  redis_data:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  agentalina_network:
+    driver: bridge
