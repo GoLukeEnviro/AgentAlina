@@ -49,14 +49,20 @@ WORKDIR $APP_HOME
 FROM base AS final
 WORKDIR $APP_HOME
 
-# Copy application code
-COPY . .
-
-# Copy built dependencies from builder stage if any
-COPY --from=builder $APP_HOME $APP_HOME
-
 # Create a non-root user for security
 RUN useradd -m -u 1000 appuser
+
+# Entrypoint script (copy and set permissions as root)
+COPY docker/production/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Copy application code with correct ownership
+COPY --chown=appuser:appuser . .
+
+# Copy built dependencies from builder stage if any
+COPY --from=builder --chown=appuser:appuser $APP_HOME $APP_HOME
+
+# Switch to non-root user
 USER appuser
 
 # Expose port for the application
@@ -65,10 +71,6 @@ EXPOSE 8000
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD ["python", "healthcheck.py"]
-
-# Entrypoint script
-COPY docker/production/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
 # Command to run the application

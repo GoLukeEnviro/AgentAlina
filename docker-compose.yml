@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  autogen-mcp:
+    build:
+      context: ./services/autogen-mcp
+    stdin_open: true
+    tty: true
+    networks:
+      - agentalina_network
+    depends_on:
+      - model-mcp
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('MCP Server Health Check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   app:
     build:
       context: .
@@ -24,14 +39,16 @@ services:
     volumes:
       - app_data:/app/data
     depends_on:
-      - redis
-      - postgres
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "/app/docker/production/healthcheck.sh"]
+      test: ["CMD", "python", "healthcheck.py"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 5s
+      start_period: 30s
     networks:
       - agentalina_network
 
@@ -68,10 +85,27 @@ services:
     networks:
       - agentalina_network
 
+  node-exporter:
+    image: prom/node-exporter
+    volumes:
+      - /proc:/host/proc
+      - /sys:/host/sys
+      - /:/rootfs
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    networks:
+      - agentalina_network
+
   prometheus:
     image: prom/prometheus:v2.30.3
     container_name: agentalina_prometheus
     restart: unless-stopped
+    ports:
+      - "9091:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
@@ -80,8 +114,6 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
-    ports:
-      - "9090:9090"
     depends_on:
       - app
     healthcheck:
@@ -89,9 +121,22 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    extra_hosts:
+      - "monitor:127.0.0.1"
     networks:
       - agentalina_network
 
+  ollama:
+    image: ollama/ollama:0.1.34
+    ports:
+      - 11435:11434
+    deploy:
+      resources:
+        limits:
+          cpus: '2.00'
+          memory: 8G
+    networks:
+      - agentalina_network
   grafana:
     image: grafana/grafana:8.2.2
     container_name: agentalina_grafana
@@ -101,7 +146,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin123
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       - prometheus
     healthcheck:
@@ -130,6 +175,62 @@ services:
       retries: 3
     networks:
       - agentalina_network
+
+  model-mcp:
+    build:
+      context: ./services/model-mcp
+    stdin_open: true
+    tty: true
+    networks:
+      - agentalina_network
+    depends_on:
+      - ollama
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('MCP Server Health Check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  monitor-mcp:
+    build:
+      context: ./services/monitor-mcp
+    stdin_open: true
+    tty: true
+    networks:
+      - agentalina_network
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('MCP Server Health Check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  optimizer-mcp:
+    build:
+      context: ./services/optimizer-mcp
+    stdin_open: true
+    tty: true
+    networks:
+      - agentalina_network
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('MCP Server Health Check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  plugin-mcp:
+    build:
+      context: ./services/plugin-mcp
+    stdin_open: true
+    tty: true
+    networks:
+      - agentalina_network
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('MCP Server Health Check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   app_data:

@@ -187,6 +187,20 @@ services:
     #       cpus: '0.5'
     #       memory: 2GB
 
+  bedrock-mock:
+    image: local/bedrock-mock:latest
+    environment:
+      - AWS_REGION=us-west-2
+      - BEDROCK_AGENT_ID=default-agent
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 4GB
+    depends_on:
+      - knowledge-graph
+      - agentops-monitor
+
 networks:
   internal:
     driver: bridge

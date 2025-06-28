@@ -551,6 +551,16 @@ class MonitoringObservabilitySystem:
         
         self._monitoring_task = asyncio.create_task(monitoring_loop())
     
+    def log_agent_interaction(self, source, target):
+        self.ops.record(
+            event_type="Agent_Handshake",
+            data={
+                "timestamp": datetime.now().isoformat(),
+                "source": source,
+                "target": target
+            }
+        )
+    
     def record_agent_operation(self, agent_name: str, operation: str, 
                               duration: float, success: bool, metadata: Dict[str, Any] = None):
         """Record agent operation metrics."""

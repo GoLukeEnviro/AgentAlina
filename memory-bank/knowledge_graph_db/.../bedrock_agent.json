@@ -1,0 +1,8 @@
+{
+  "name": "BedrockAgent",
+  "entityType": "AWS::Bedrock::Agent",
+  "observations": [
+    "Handhabung von Multi-Agenten-Kollaboration",
+    "Integration mit AWS Bedrock API v2.3"
+  ]
+}

@@ -53,10 +53,16 @@ class AgentConfiguration:
     optimization_strategy: str
     model_parameters: Dict[str, Any]
 
+# Temporäre Anpassung aufgrund von API-Änderungen in agentops
+# TODO: Aktualisieren Sie dies basierend auf der aktuellen agentops-Dokumentation (Version 0.4.16)
+import agentops
+
 class AgentImprovementEngine:
-    """Engine für kontinuierliche Agent-Verbesserung."""
-    
     def __init__(self):
+        # Temporäre Anpassung aufgrund von API-Änderungen in agentops
+        # TODO: Initialisieren Sie agentops basierend auf der aktuellen Dokumentation (Version 0.4.16)
+        # self.ops = AgentOps()
+        # self.ops.record_workflow_start()
         self.neo4j_config = get_neo4j_config()
         self.driver = None
         self.performance_history: List[PerformanceMetric] = []
@@ -64,6 +70,7 @@ class AgentImprovementEngine:
         self.improvement_model = RandomForestRegressor(n_estimators=100, random_state=42)
         self.is_trained = False
         self.optimization_running = False
+        self.coordination_history: List[Dict[str, Any]] = []
         
     async def initialize(self):
         """Initialisiert die Improvement Engine."""
@@ -513,6 +520,116 @@ class AgentImprovementEngine:
                 'improvements': json.dumps(improvements),
                 'improvement_count': len(improvements)
             })
+            
+    async def generate_mandatory_session_end_prompt(self, work_completed: str, current_status: str, 
+                                                   next_agent_instructions: str, critical_context: str, 
+                                                   files_modified: List[str]) -> str:
+        """Generiert einen strukturierten Prompt für Session-Ende.
+        
+        Args:
+            work_completed: Zusammenfassung der erledigten Arbeit
+            current_status: Aktueller Status des Agents
+            next_agent_instructions: Anweisungen für den nächsten Agent
+            critical_context: Kritischer Kontext für die Übergabe
+            files_modified: Liste der geänderten Dateien
+            
+        Returns:
+            Strukturierter Prompt für Session-Ende
+        """
+        prompt = (
+            f"# SESSION END REPORT\n"
+            f"## Work Completed\n{work_completed}\n\n"
+            f"## Current Status\n{current_status}\n\n"
+            f"## Next Agent Instructions\n{next_agent_instructions}\n\n"
+            f"## Critical Context\n{critical_context}\n\n"
+            f"## Files Modified\n" + '\n'.join(f'- {f}' for f in files_modified)
+        )
+        
+        # Log coordination event
+        self.coordination_history.append({
+            'type': 'session_end',
+            'timestamp': datetime.now(),
+            'agent_id': self.agent_id,
+            'prompt': prompt
+        })
+        
+        return prompt
+        
+    async def generate_handoff_prompt_only(self, next_agent_instructions: str, 
+                                         critical_context: str) -> str:
+        """Generiert einen reduzierten Handoff-Prompt.
+        
+        Args:
+            next_agent_instructions: Anweisungen für den nächsten Agent
+            critical_context: Kritischer Kontext für die Übergabe
+            
+        Returns:
+            Strukturierter Handoff-Prompt
+        """
+        prompt = (
+            f"# AGENT HANDOFF\n"
+            f"## Next Agent Instructions\n{next_agent_instructions}\n\n"
+            f"## Critical Context\n{critical_context}"
+        )
+        
+        # Log coordination event
+        self.coordination_history.append({
+            'type': 'handoff',
+            'timestamp': datetime.now(),
+            'agent_id': self.agent_id,
+            'prompt': prompt
+        })
+        
+        return prompt
+        
+    async def generate_meta_feedback(self, feedback_type: str, feedback_content: str, 
+                                    severity: str = 'medium') -> Dict[str, Any]:
+        """Generiert Meta-Feedback für das System.
+        
+        Args:
+            feedback_type: Typ des Feedbacks (z.B. 'performance', 'coordination')
+            feedback_content: Inhalt des Feedbacks
+            severity: Schweregrad ('low', 'medium', 'high')
+            
+        Returns:
+            Dictionary mit Feedback-Details
+        """
+        feedback = {
+            'type': feedback_type,
+            'content': feedback_content,
+            'severity': severity,
+            'timestamp': datetime.now(),
+            'agent_id': self.agent_id
+        }
+        
+        # Store in coordination history
+        self.coordination_history.append({
+            'type': 'meta_feedback',
+            'timestamp': datetime.now(),
+            'feedback': feedback
+        })
+        
+        # Also store in Neo4j
+        query = """
+        MATCH (a:Agent {id: $agent_id})
+        CREATE (f:MetaFeedback {
+            type: $type,
+            content: $content,
+            severity: $severity,
+            timestamp: datetime()
+        })
+        CREATE (a)-[:PROVIDED_FEEDBACK]->(f)
+        """
+        
+        with self.driver.session() as session:
+            session.run(query, {
+                'agent_id': self.agent_id,
+                'type': feedback_type,
+                'content': feedback_content,
+                'severity': severity
+            })
+        
+        return feedback
     
     async def get_agent_performance_summary(self, agent_id: str) -> Dict[str, Any]:
         """Gibt Performance-Zusammenfassung für einen Agent zurück.

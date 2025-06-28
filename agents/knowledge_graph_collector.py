@@ -229,3 +229,10 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def integrate_bedrock_knowledge(self, kb_id: str):
+    """Verknüpft AWS Bedrock KB mit Graph"""
+    self.driver.execute_query(
+        "CREATE (k:KnowledgeBase {id: $id}) RETURN k",
+        {"id": kb_id}
+    )

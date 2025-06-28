@@ -44,6 +44,58 @@ async def install_plugin(plugin_name, version="latest"):
             logger.error(f"Error installing plugin {plugin_name}: {e}")
             return None
 
+async def generate_mandatory_session_end_prompt(work_completed, current_status, next_agent_instructions, critical_context, files_modified):
+    """
+    Generates a mandatory session end prompt for agent handoff
+    Args:
+        work_completed: List of completed items
+        current_status: Current project status
+        next_agent_instructions: Instructions for next agent
+        critical_context: Important context to preserve
+        files_modified: Files modified this session
+    """
+    return {
+        "work_completed": work_completed,
+        "current_status": current_status,
+        "next_agent_instructions": next_agent_instructions,
+        "critical_context": critical_context,
+        "files_modified": files_modified
+    }
+
+async def generate_handoff_prompt_only(task_description, work_completed, next_steps, brief_context):
+    """
+    Generates a quick coordination prompt for agent handoff
+    Args:
+        task_description: Description of current task
+        work_completed: List of completed work items
+        next_steps: Next steps for the task
+        brief_context: Brief context about the task
+    """
+    return {
+        "task_description": task_description,
+        "work_completed": work_completed,
+        "next_steps": next_steps,
+        "brief_context": brief_context
+    }
+
+async def generate_meta_feedback(current_project, agor_issues_encountered, suggested_improvements, workflow_friction_points, positive_experiences):
+    """
+    Generates meta feedback about the AGOR system
+    Args:
+        current_project: Current project name
+        agor_issues_encountered: Issues with AGOR
+        suggested_improvements: Suggestions for AGOR
+        workflow_friction_points: Friction points in workflow
+        positive_experiences: Positive experiences
+    """
+    return {
+        "current_project": current_project,
+        "agor_issues_encountered": agor_issues_encountered,
+        "suggested_improvements": suggested_improvements,
+        "workflow_friction_points": workflow_friction_points,
+        "positive_experiences": positive_experiences
+    }
+
 def main():
     """Main function to run the toolloader service."""
     logger.info("Starting Toolloader Service...")

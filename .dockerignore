@@ -1,0 +1,96 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+README*
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+SECURITY.md
+LICENSE
+
+# Development files
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.tox
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+Dockerfile*
+
+# Test files
+tests/
+test-config/
+
+# CI/CD
+.github/
+ci/
+
+# Memory and logs
+memory-bank/
+*.log
+logs/
+
+# Environment
+.env
+.env.*
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Documentation
+docs/
+Documents/
+
+# Grafana
+grafana/
+
+# Infrastructure
+infra/
+
+# Scripts
+*.sh
+deploy*
+install*
+setup*
+start*
+update*
+
+# Config files in root
+*.yml
+*.yaml
+prometheus.yml
+alert_rules.yml
+config.yaml

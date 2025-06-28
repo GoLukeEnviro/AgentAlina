@@ -1,0 +1,6 @@
+edge_agent:
+  threat_detection:
+    enabled: true
+    protocols:
+      - anomaly_behavior_analysis
+      - llm_prompt_sanitization

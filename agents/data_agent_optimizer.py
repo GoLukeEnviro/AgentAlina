@@ -15,6 +15,7 @@ import requests
 import sys
 import os
 from datetime import datetime
+from agently import WorkflowBuilder
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -264,3 +265,12 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+class DataOptimizer:
+    def build_automl_pipeline(self):
+        workflow = WorkflowBuilder()
+        workflow.add_stage('hyperparameter_tuning', {
+            'algorithm': 'AutoGluon',
+            'metrics': ['accuracy', 'inference_speed']
+        });

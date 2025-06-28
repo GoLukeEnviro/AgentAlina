@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Run unit tests
+        run: |
+          pytest tests/unit -v
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [unit-tests]
+    services:
+      bedrock-mock:
+        image: local/bedrock-mock:latest
+        ports:
+          - "8080:8080"
+        env:
+          MOCK_MODE: "multiagent"
+          AWS_REGION: us-west-2
+    steps:
+      - uses: actions/checkout@v3
+      - name: Start Docker infrastructure
+        run: |
+          docker-compose -f docker/docker-compose.yml up -d
+      - name: Run integration tests
+        run: |
+          pytest tests/integration -v
+        env:
+          BEDROCK_ENDPOINT: http://bedrock-mock:8080
+          PYTHONPATH: ${{ github.workspace }}
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-reports
+          path: test-reports/
+      - name: Build AutoGen Service
+        run: docker-compose build autogen-mcp
+      
+      - name: Test AutoGen Integration
+        run: pytest tests/integration/test_autogen.py

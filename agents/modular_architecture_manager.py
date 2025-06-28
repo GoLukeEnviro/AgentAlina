@@ -446,3 +446,23 @@ if __name__ == "__main__":
     # Run example
     import asyncio
     asyncio.run(example_workflow())
+
+
+def load_aws_bedrock_functions():
+    return [
+        {
+            "name": "agent_coordinate",
+            "description": "Koordinierte Task-Verteilung zwischen Agenten",
+            "parameters": {
+                "task_type": {"type": "string", "required": True}
+            }
+        }
+    ]
+
+class ModularArchitectureManager:
+    def __init__(self):
+        self.init_langchain()
+
+    def init_langchain(self):
+        self.llm = Ollama(base_url='http://ollama:11434', model='llama3')
+        self.agent_chain = LLMChain(llm=self.llm, prompt=self._create_agent_prompt())
